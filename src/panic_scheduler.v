@@ -165,72 +165,283 @@ module panic_scheduler #
     
 );
 
-wire                            pifo_in_fifo_ready  [PORT_NUM-1 : 0];
-reg                             pifo_in_fifo_valid  [PORT_NUM-1 : 0];
-reg [`PANIC_DESC_PRIO_SIZE-1:0] pifo_in_fifo_prio   [PORT_NUM-1 : 0];  // temp 4096 priority number
-reg [`PANIC_DESC_WIDTH-1:0]     pifo_in_fifo_data   [PORT_NUM-1 : 0];  // temp 4096 priority number
+// flatten the input port
+wire                              s_pifo_in_port_arb_ready  [PORT_NUM-1 : 0];
+reg                               s_pifo_in_port_arb_valid  [PORT_NUM-1 : 0];
+reg [`PANIC_DESC_PRIO_SIZE-1:0]   s_pifo_in_port_arb_prio   [PORT_NUM-1 : 0];
+reg [`PANIC_DESC_WIDTH-1:0]       s_pifo_in_port_arb_data   [PORT_NUM-1 : 0];
 
-wire                             pifo_in_ready;
-wire                             pifo_in_valid;
-wire [`PANIC_DESC_PRIO_SIZE-1:0] pifo_in_prio;  // temp 4096 priority number
-wire [`PANIC_DESC_WIDTH-1:0]     pifo_in_data;  // temp 4096 priority number
+reg                               m_pifo_in_port_arb_ready;
+wire                              m_pifo_in_port_arb_valid;
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  m_pifo_in_port_arb_prio ;
+wire [`PANIC_DESC_WIDTH-1:0]      m_pifo_in_port_arb_data ;
 
-wire                             pifo_out_ready;
-wire                             pifo_out_valid;
-wire [`PANIC_DESC_PRIO_SIZE-1:0] pifo_out_prio;  // temp 4096 priority number
-wire [`PANIC_DESC_WIDTH-1:0]     pifo_out_data;  // temp 4096 priority number
-reg  [`PANIC_DESC_WIDTH-1:0]     pifo_out_data_clear;  // clear the drop mem bit
+wire                              s_pifo_in_fifo_ready    [1:0];
+reg                               s_pifo_in_fifo_valid    [1:0];
+reg [`PANIC_DESC_PRIO_SIZE-1:0]   s_pifo_in_fifo_prio     [1:0];
+reg [`PANIC_DESC_WIDTH-1:0]       s_pifo_in_fifo_data     [1:0];
 
-wire                             pifo_out_drop_valid;
-wire [`PANIC_DESC_PRIO_SIZE-1:0] pifo_out_drop_prio;  // temp 4096 priority number
-wire [`PANIC_DESC_WIDTH-1:0]     pifo_out_drop_data;  // temp 4096 priority number
+wire                              pifo_in_ready      [1:0];
+wire                              pifo_in_valid      [1:0];
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  pifo_in_prio       [1:0];
+wire [`PANIC_DESC_WIDTH-1:0]      pifo_in_data       [1:0];
+
+reg                               pifo_out_ready      [1:0];
+wire                              pifo_out_valid      [1:0];
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  pifo_out_prio       [1:0];
+wire [`PANIC_DESC_WIDTH-1:0]      pifo_out_data       [1:0];
+
+
+wire                              pifo_out_drop_valid [1:0];
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  pifo_out_drop_prio  [1:0];
+wire [`PANIC_DESC_WIDTH-1:0]      pifo_out_drop_data  [1:0];
+wire                              pifo_out_drop_ready  [1:0];
+
+wire                              m_pifo_drop_fifo_valid [1:0];
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  m_pifo_drop_fifo_prio  [1:0];
+wire [`PANIC_DESC_WIDTH-1:0]      m_pifo_drop_fifo_data  [1:0];
+wire                              m_pifo_drop_fifo_ready [1:0];
+
+wire                              arb_pifo_drop_fifo_valid ;
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  arb_pifo_drop_fifo_prio  ; 
+wire [`PANIC_DESC_WIDTH-1:0]      arb_pifo_drop_fifo_data  ; 
+wire                              arb_pifo_drop_fifo_ready ;
+
+wire                              s_pifo_out_fifo_ready;
+reg                               s_pifo_out_fifo_valid;
+reg [`PANIC_DESC_PRIO_SIZE-1:0]   s_pifo_out_fifo_prio;  
+reg [`PANIC_DESC_WIDTH-1:0]       s_pifo_out_fifo_data;  
+reg [3:0]                         s_pifo_out_fifo_select;
+
+wire                              m_pifo_out_fifo_ready;
+wire                              m_pifo_out_fifo_valid;
+wire [`PANIC_DESC_PRIO_SIZE-1:0]  m_pifo_out_fifo_prio;  
+wire [`PANIC_DESC_WIDTH-1:0]      m_pifo_out_fifo_data;  
+wire [3:0]                        m_pifo_out_fifo_select;  
+
+reg  [`PANIC_DESC_WIDTH-1:0]     m_pifo_out_fifo_data_clear;  // clear the drop mem bit
+
+
 
 always @* begin
-    pifo_out_data_clear = pifo_out_data;
-    // pifo_out_data_clear[`PANIC_DESC_INTENSE_OF] = 0;
-    pifo_out_data_clear[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] = selected_engine;
+    m_pifo_out_fifo_data_clear = m_pifo_out_fifo_data;
+    // m_pifo_out_fifo_data_clear[`PANIC_DESC_INTENSE_OF] = 0;
+    m_pifo_out_fifo_data_clear[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] = m_pifo_out_fifo_select;
 end
 
-// priority queue
-pifo_warp #(
-    .NUMPIFO    (NUMPIFO),
-    .BITPORT    (1),
-    .BITPRIO    (`PANIC_DESC_PRIO_SIZE),
-    .BITDESC    (`PANIC_DESC_WIDTH)
-) pf_inst (
-    .clk                                (clk),
-    .rst                                (rst),
 
-    .pifo_in_ready                      (pifo_in_ready),
-    .pifo_in_valid                      (pifo_in_valid),
-    .pifo_in_prio                       (pifo_in_prio), 
-    .pifo_in_data                       (pifo_in_data), 
-    .pifo_in_drop                       (alloc_mem_intense),
+generate
+    genvar pc;
+    for(pc = 0; pc < 2; pc = pc + 1) begin: pifo_array // generate pifo array with 2 pifo
+        // priority queue
+        pifo_warp #(
+            .NUMPIFO    (NUMPIFO),
+            .BITPORT    (1),
+            .BITPRIO    (`PANIC_DESC_PRIO_SIZE),
+            .BITDESC    (`PANIC_DESC_WIDTH),
+            .PIFO_ID    (pc)
+        ) pf_inst (
+            .clk                                (clk),
+            .rst                                (rst),
+
+            .pifo_in_ready                      (pifo_in_ready[pc]),
+            .pifo_in_valid                      (pifo_in_valid[pc]),
+            .pifo_in_prio                       (pifo_in_prio[pc]), 
+            .pifo_in_data                       (pifo_in_data[pc]), 
+            .pifo_in_drop                       (alloc_mem_intense),
 
 
-    .pifo_out_ready                      (pifo_out_ready),
-    .pifo_out_valid                      (pifo_out_valid),
-    .pifo_out_prio                       (pifo_out_prio), 
-    .pifo_out_data                       (pifo_out_data),
+            .pifo_out_ready                      (pifo_out_ready[pc]),
+            .pifo_out_valid                      (pifo_out_valid[pc]),
+            .pifo_out_prio                       (pifo_out_prio[pc]), 
+            .pifo_out_data                       (pifo_out_data[pc]),
 
-    .pifo_out_drop_valid                 (pifo_out_drop_valid),
-    .pifo_out_drop_prio                  (pifo_out_drop_prio), 
-    .pifo_out_drop_data                  (pifo_out_drop_data)
-     
+            .pifo_out_drop_valid                 (pifo_out_drop_valid[pc]),
+            .pifo_out_drop_prio                  (pifo_out_drop_prio[pc]), 
+            .pifo_out_drop_data                  (pifo_out_drop_data[pc])
+        );
+
+        // small fifo for pifo input
+        axis_fifo #(
+            .DEPTH(4),
+            .DATA_WIDTH(`PANIC_DESC_WIDTH + `PANIC_DESC_PRIO_SIZE),
+            .KEEP_ENABLE(0),
+            .LAST_ENABLE(0),
+            .ID_ENABLE(0),
+            .DEST_ENABLE(0),
+            .USER_ENABLE(0),
+            .FRAME_FIFO(0)
+        )
+        pifo_in_fifo (
+            .clk(clk),
+            .rst(rst),
+
+            // AXI input
+            .s_axis_tdata({s_pifo_in_fifo_prio[pc],s_pifo_in_fifo_data[pc]}),
+            .s_axis_tvalid(s_pifo_in_fifo_valid[pc]),
+            .s_axis_tready(s_pifo_in_fifo_ready[pc]),
+
+            // AXI output
+            .m_axis_tdata({pifo_in_prio[pc],pifo_in_data[pc]}),
+            .m_axis_tvalid(pifo_in_valid[pc]),
+            .m_axis_tready(pifo_in_ready[pc])
+        );
+
+        // small fifo for pifo drop
+        axis_fifo #(
+            .DEPTH(4),
+            .DATA_WIDTH(`PANIC_DESC_WIDTH + `PANIC_DESC_PRIO_SIZE),
+            .KEEP_ENABLE(0),
+            .LAST_ENABLE(0),
+            .ID_ENABLE(0),
+            .DEST_ENABLE(0),
+            .USER_ENABLE(0),
+            .FRAME_FIFO(0)
+        )
+        pifo_drop_fifo (
+            .clk(clk),
+            .rst(rst),
+
+            // AXI input
+            .s_axis_tdata({pifo_out_drop_prio[pc],pifo_out_drop_data[pc]}),
+            .s_axis_tvalid(pifo_out_drop_valid[pc]),
+            .s_axis_tready(pifo_out_drop_ready[pc]),
+
+            // AXI output
+            .m_axis_tdata({m_pifo_drop_fifo_prio[pc],m_pifo_drop_fifo_data[pc]}),
+            .m_axis_tvalid(m_pifo_drop_fifo_valid[pc]),
+            .m_axis_tready(m_pifo_drop_fifo_ready[pc])
+
+        );
+    end
+endgenerate
+
+
+
+// small fifo for pifo output
+axis_fifo #(
+    .DEPTH(2),
+    .DATA_WIDTH(`PANIC_DESC_WIDTH + `PANIC_DESC_PRIO_SIZE + 4),
+    .KEEP_ENABLE(0),
+    .LAST_ENABLE(0),
+    .ID_ENABLE(0),
+    .DEST_ENABLE(0),
+    .USER_ENABLE(0),
+    .FRAME_FIFO(0)
+)
+pifo_out_fifo (
+    .clk(clk),
+    .rst(rst),
+
+    // AXI input
+    .s_axis_tdata({s_pifo_out_fifo_prio,s_pifo_out_fifo_data,s_pifo_out_fifo_select}),
+    .s_axis_tvalid(s_pifo_out_fifo_valid),
+    .s_axis_tready(s_pifo_out_fifo_ready),
+
+    // AXI output
+    .m_axis_tdata({m_pifo_out_fifo_prio,m_pifo_out_fifo_data,m_pifo_out_fifo_select}),
+    .m_axis_tvalid(m_pifo_out_fifo_valid),
+    .m_axis_tready(m_pifo_out_fifo_ready)
+
 );
+
+
+// arbiter logic for 2 port pifo
+// input logic
+always @* begin
+
+    s_pifo_in_fifo_valid[0] = 0;
+    s_pifo_in_fifo_valid[1] = 0;
+
+    s_pifo_in_fifo_prio[0] = m_pifo_in_port_arb_prio;  
+    s_pifo_in_fifo_prio[1] = m_pifo_in_port_arb_prio; 
+
+    s_pifo_in_fifo_data[0] = m_pifo_in_port_arb_data;  
+    s_pifo_in_fifo_data[1] = m_pifo_in_port_arb_data;  
+
+    if(TEST_MODE == 0 ) begin
+        if(m_pifo_in_port_arb_valid && s_pifo_in_fifo_ready[0] && m_pifo_in_port_arb_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] <= 5) begin // service 1 goto pifo 0
+            s_pifo_in_fifo_valid[0] = 1;
+            m_pifo_in_port_arb_ready = 1;
+        end
+        else if (m_pifo_in_port_arb_valid && s_pifo_in_fifo_ready[1] && m_pifo_in_port_arb_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] >= 6) begin // service 2 go to pifo 1
+            s_pifo_in_fifo_valid[1] = 1;
+            m_pifo_in_port_arb_ready = 1;
+        end
+    end
+    else begin
+        if(m_pifo_in_port_arb_valid && s_pifo_in_fifo_ready[0] ) begin // all goto pifo 0
+            s_pifo_in_fifo_valid[0] = 1;
+            m_pifo_in_port_arb_ready = 1;
+        end
+    end
+
+end
+
+// select logic for 2 port pifo drop
+axis_arb_mux  #(
+    .S_COUNT(2),
+    .DATA_WIDTH(`PANIC_DESC_WIDTH + `PANIC_DESC_PRIO_SIZE),
+    .KEEP_ENABLE(0),
+    .USER_ENABLE(0),
+    .ID_ENABLE(0),
+    .DEST_ENABLE(0)
+)
+pifo_drop_arb (
+    .clk(clk),
+    .rst(rst),
+    // AXI inputs
+    .s_axis_tdata({{m_pifo_drop_fifo_data[0],m_pifo_drop_fifo_prio[0]}, {m_pifo_drop_fifo_data[1],m_pifo_drop_fifo_prio[1]}}),
+    .s_axis_tvalid({m_pifo_drop_fifo_valid[0], m_pifo_drop_fifo_valid[1]}),
+    .s_axis_tready({m_pifo_drop_fifo_ready[0], m_pifo_drop_fifo_ready[1]}),
+    .s_axis_tlast({{1'b1},{1'b1}}),
+
+    // AXI output
+    .m_axis_tdata({arb_pifo_drop_fifo_data,arb_pifo_drop_fifo_prio}),
+    .m_axis_tvalid(arb_pifo_drop_fifo_valid),
+    .m_axis_tready(arb_pifo_drop_fifo_ready)
+);
+assign arb_pifo_drop_fifo_ready = 1;
+
+always@*begin
+    s_pifo_out_fifo_data = 0;
+    s_pifo_out_fifo_prio = 0;
+    s_pifo_out_fifo_select = 0;
+    s_pifo_out_fifo_valid = 0;
+    pifo_out_ready[1] = 0;
+    pifo_out_ready[0] = 0;
+
+    if(pifo_out_valid[1]&&(max_credit[1]>0)) begin
+        s_pifo_out_fifo_data = pifo_out_data[1];
+        s_pifo_out_fifo_prio = pifo_out_prio[1];
+        s_pifo_out_fifo_select = selected_engine[1];
+        s_pifo_out_fifo_valid = 1;
+        pifo_out_ready[1] = 1;
+    end
+    else if(pifo_out_valid[0]&&(max_credit[0]>0)) begin
+        s_pifo_out_fifo_data = pifo_out_data[0];
+        s_pifo_out_fifo_prio = pifo_out_prio[0];
+        s_pifo_out_fifo_select = selected_engine[0];
+        s_pifo_out_fifo_valid = 1;
+        pifo_out_ready[0] = 1;
+    end
+end
+
 
 // free memory request when pifo drop
 always @* begin
-    free_mem_req = pifo_out_drop_valid;
+    free_mem_req = arb_pifo_drop_fifo_valid;
     // free_mem_addr[ 1 * AXI_ADDR_WIDTH +: AXI_ADDR_WIDTH ]  = pifo_out_drop_data[`PANIC_DESC_ADDR_OF   +: `PANIC_DESC_ADDR_SIZE];
-    free_cell_id  = pifo_out_drop_data[`PANIC_DESC_CELL_ID_OF   +: `PANIC_DESC_CELL_ID_SIZE];
-    free_mem_size  = pifo_out_drop_data[`PANIC_DESC_LEN_OF   +: `PANIC_DESC_LEN_SIZE];
-    free_bank_id = pifo_out_drop_data[`PANIC_DESC_PORT_OF];
+    free_cell_id  = arb_pifo_drop_fifo_data[`PANIC_DESC_CELL_ID_OF   +: `PANIC_DESC_CELL_ID_SIZE];
+    free_mem_size  = arb_pifo_drop_fifo_data[`PANIC_DESC_LEN_OF   +: `PANIC_DESC_LEN_SIZE];
+    free_bank_id = arb_pifo_drop_fifo_data[`PANIC_DESC_PORT_OF];
 end
 
 always @* begin
     if(!free_mem_ready)
         $display("ERROR! free_mem_ready in scheduler is not ready.");
+    if(!rst && (!pifo_out_drop_ready[0] || !pifo_out_drop_ready[1]) )
+        $display("ERROR! cannot drop at such high speed??");
 end
 
 axis_arb_mux  #(
@@ -245,70 +456,70 @@ pifo_in_arb (
     .clk(clk),
     .rst(rst),
     // AXI inputs
-    .s_axis_tdata({{pifo_in_fifo_data[0],pifo_in_fifo_prio[0]}, {pifo_in_fifo_data[1],pifo_in_fifo_prio[1]}}),
-    .s_axis_tvalid({pifo_in_fifo_valid[0], pifo_in_fifo_valid[1]}),
-    .s_axis_tready({pifo_in_fifo_ready[0], pifo_in_fifo_ready[1]}),
+    .s_axis_tdata({{s_pifo_in_port_arb_data[0],s_pifo_in_port_arb_prio[0]}, {s_pifo_in_port_arb_data[1],s_pifo_in_port_arb_prio[1]}}),
+    .s_axis_tvalid({s_pifo_in_port_arb_valid[0], s_pifo_in_port_arb_valid[1]}),
+    .s_axis_tready({s_pifo_in_port_arb_ready[0], s_pifo_in_port_arb_ready[1]}),
     .s_axis_tlast({{1'b1},{1'b1}}),
 
     // AXI output
-    .m_axis_tdata({pifo_in_data,pifo_in_prio}),
-    .m_axis_tvalid(pifo_in_valid),
-    .m_axis_tready(pifo_in_ready)
+    .m_axis_tdata({m_pifo_in_port_arb_data,m_pifo_in_port_arb_prio}),
+    .m_axis_tvalid(m_pifo_in_port_arb_valid),
+    .m_axis_tready(m_pifo_in_port_arb_ready)
 );
 
-// credit manager counter
-wire credit_valid;
-wire [2:0] selected_engine;
-reg crossbar_valid = 1;
+// select unit with maximum credit number
 
-integer wk;
-// wire [2:0] selected_engine;
-reg [2:0] max_engine;
-reg [2:0] max_credit;
-assign selected_engine = max_engine;
+wire [3:0] selected_engine [1:0]; // 2 port pifo
+
+integer wk1, wk2;
+
+reg [3:0] max_engine [1:0];
+reg [3:0] max_credit [1:0];
+assign selected_engine[0] = max_engine[0];
+assign selected_engine[1] = max_engine[1];
 always @* begin
-    max_credit = 0;
-    max_engine = 4;
+    max_credit[0] = 0;
+    max_credit[1] = 0;
+    max_engine[0] = 4;
+    max_engine[1] = 6;
 
     if(TEST_MODE == 0) begin
         // [SHA TAG] --
-        if(pifo_out_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] == 4|| pifo_out_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] == 5 ) begin // it is the first offload service
-            max_engine = 4;
-            for(wk = 4; wk < 4 + 2 ; wk = wk + 1 ) begin
-                if( credit_regs[wk] > max_credit) begin
-                    max_credit = credit_regs[wk];
-                    max_engine = wk;
+        if(pifo_out_data[0][`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] == 4 || pifo_out_data[0][`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] == 5) begin
+            max_engine[0] = 4;
+            for(wk1 = 4; wk1 < 4 + 2 ; wk1 = wk1 + 1 ) begin
+                if( credit_regs[wk1] > max_credit[0]) begin
+                    max_credit[0] = credit_regs[wk1];
+                    max_engine[0] = wk1;
                 end
             end
         end
-        else if(pifo_out_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] == 6 || pifo_out_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] ==7) begin // it is the second offload service
-            max_engine = 6;
-            for(wk = 6; wk < 6 + 2 ; wk = wk + 1 ) begin
-                if( credit_regs[wk] > max_credit) begin
-                    max_credit = credit_regs[wk];
-                    max_engine = wk;
+
+        if(pifo_out_data[1][`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] == 6 || pifo_out_data[1][`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE] ==7) begin // it is the second offload service
+            max_engine[1] = 6;
+            for(wk2 = 6; wk2 < 6 + 2 ; wk2 = wk2 + 1 ) begin
+                if( credit_regs[wk2] > max_credit[1]) begin
+                    max_credit[1] = credit_regs[wk2];
+                    max_engine[1] = wk2;
                 end
             end
         end
         // [SHA TAG] --
     end
     else begin
-        max_engine = 4;
-        for(wk = 4; wk < 4 + 3 ; wk = wk + 1 ) begin
-            if( credit_regs[wk] > max_credit) begin
-                max_credit = credit_regs[wk];
-                max_engine = wk;
+        max_engine[0] = 4;
+        for(wk1 = 4; wk1 < 4 + 3 ; wk1 = wk1 + 1 ) begin
+            if( credit_regs[wk1] > max_credit[0]) begin
+                max_credit[0] = credit_regs[wk1];
+                max_engine[0] = wk1;
             end
         end
     end
-    
-    // max_engine = 3;
-    // max_engine = pifo_out_data[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE];
 end
 
 
 //need prepost ready signal
-assign pifo_out_ready = (pifo_out_ready_array[0] && pifo_out_data[`PANIC_DESC_PORT_OF] == 0) || (pifo_out_ready_array[1] && pifo_out_data[`PANIC_DESC_PORT_OF] == 1) ;
+assign m_pifo_out_fifo_ready = (pifo_out_ready_array[0] && m_pifo_out_fifo_data[`PANIC_DESC_PORT_OF] == 0) || (pifo_out_ready_array[1] && m_pifo_out_fifo_data[`PANIC_DESC_PORT_OF] == 1) ;
 
 wire  pifo_out_ready_array  [PORT_NUM-1 : 0];
 
@@ -324,14 +535,14 @@ generate
             m_mem_p_axis_read_desc_addr[op*AXI_ADDR_WIDTH +: AXI_ADDR_WIDTH] = 0;
             m_mem_p_axis_read_desc_len[op*LEN_WIDTH +: LEN_WIDTH] = 0;
             m_mem_p_axis_read_desc_tag[op*TAG_WIDTH +: TAG_WIDTH] = 0;
-            if(pifo_out_valid && pifo_out_ready && (pifo_out_data[`PANIC_DESC_PORT_OF] == op) ) begin
+            if(m_pifo_out_fifo_valid && m_pifo_out_fifo_ready && (m_pifo_out_fifo_data[`PANIC_DESC_PORT_OF] == op) ) begin
                 // read descriptor from the pifo
                 // pifo_out_ready_reg = 1; 
                 // TODO: select from multiple engine, need modify this value
 
                 // generate data buffer read descriptor
-                m_mem_p_axis_read_desc_addr[op*AXI_ADDR_WIDTH +: AXI_ADDR_WIDTH] = pifo_out_data[`PANIC_DESC_CELL_ID_OF  +: `PANIC_DESC_CELL_ID_SIZE] * `PANIC_CELL_SIZE;
-                m_mem_p_axis_read_desc_len[op*LEN_WIDTH +: LEN_WIDTH] = pifo_out_data[`PANIC_DESC_LEN_OF   +: `PANIC_DESC_LEN_SIZE];
+                m_mem_p_axis_read_desc_addr[op*AXI_ADDR_WIDTH +: AXI_ADDR_WIDTH] = m_pifo_out_fifo_data[`PANIC_DESC_CELL_ID_OF  +: `PANIC_DESC_CELL_ID_SIZE] * `PANIC_CELL_SIZE;
+                m_mem_p_axis_read_desc_len[op*LEN_WIDTH +: LEN_WIDTH] = m_pifo_out_fifo_data[`PANIC_DESC_LEN_OF   +: `PANIC_DESC_LEN_SIZE];
                 m_mem_p_axis_read_desc_tag[op*TAG_WIDTH +: TAG_WIDTH] = 0;
                 m_mem_p_axis_read_desc_valid[op] = 1;
                 // use the read descriptor to generate corssbar packet 
@@ -346,7 +557,7 @@ generate
         wire                                 m_crossbar_desc_fifo_tready;
         reg                                  m_crossbar_desc_fifo_tready_reg;
         
-        assign pifo_out_ready_array[op] = m_mem_p_axis_read_desc_ready[op] && credit_valid && s_crossbar_desc_fifo_ready;
+        assign pifo_out_ready_array[op] = m_mem_p_axis_read_desc_ready[op] && s_crossbar_desc_fifo_ready;
 
         assign  m_crossbar_desc_fifo_tready = m_crossbar_desc_fifo_tready_reg;
         //descriptor fifo, size need > 5, inorder to pipeline the ram read cycle
@@ -365,7 +576,7 @@ generate
             .rst(rst),
 
             // AXI input
-            .s_axis_tdata(pifo_out_data_clear),
+            .s_axis_tdata(m_pifo_out_fifo_data_clear),
             .s_axis_tvalid(m_mem_p_axis_read_desc_valid[op]),
             .s_axis_tready(s_crossbar_desc_fifo_ready),
 
@@ -462,7 +673,7 @@ generate
             m_switch_p_axis_tdest[op*SWITCH_DEST_WIDTH +: SWITCH_DEST_WIDTH]  = 0;
             m_switch_p_axis_tuser[op*SWITCH_USER_WIDTH +: SWITCH_USER_WIDTH] = 0;
             if(switch_write_state == SWITCH_WRITE_DESC) begin
-                if(m_crossbar_desc_fifo_tvalid && m_switch_p_axis_tready[op] && (m_crossbar_data_fifo_tvalid || TEST_MODE == 1)) begin
+                if(m_crossbar_desc_fifo_tvalid && m_switch_p_axis_tready[op] ) begin //(gurantee no deassert need  && m_crossbar_data_fifo_tvalid) this may effect small packet performance
                     m_crossbar_desc_fifo_tready_reg = 1;
 
                     // fill the crossbar input
@@ -632,9 +843,9 @@ generate
             m_mem_p_axis_write_data_tkeep[sp*AXIS_KEEP_WIDTH +: AXIS_KEEP_WIDTH] = 0;
             m_mem_p_axis_write_data_tlast[sp] = 0;
 
-            pifo_in_fifo_valid[sp] = 0;
-            pifo_in_fifo_data[sp] = 0;
-            pifo_in_fifo_prio[sp] = 0;
+            s_pifo_in_port_arb_valid[sp] = 0;
+            s_pifo_in_port_arb_data[sp] = 0;
+            s_pifo_in_port_arb_prio[sp] = 0;
 
             if(scheduler_write_state == SCHE_STATE_WRITE_BUFFER_DESC) begin
                 if(m_detour_data_fifo_tvalid && m_mem_p_axis_write_desc_ready[sp] ) begin
@@ -648,8 +859,8 @@ generate
                         $display("Error happens in the NIC chain in scheduler 2");
                     end
                     else begin
-                        pifo_in_fifo_valid[sp] = 1; // pre post the valid signal
-                        if( pifo_in_fifo_ready[sp] ) begin  // if not drop packet
+                        s_pifo_in_port_arb_valid[sp] = 1; // pre post the valid signal
+                        if( s_pifo_in_port_arb_ready[sp] ) begin  // if not drop packet
                             m_detour_data_fifo_tready_reg = 1;
                             m_mem_p_axis_write_desc_addr[sp*AXI_ADDR_WIDTH +: AXI_ADDR_WIDTH] = m_detour_data_fifo_tdata[`PANIC_DESC_CELL_ID_OF  +: `PANIC_DESC_CELL_ID_SIZE] * `PANIC_CELL_SIZE;
                             m_mem_p_axis_write_desc_len[sp*LEN_WIDTH +: LEN_WIDTH] = m_detour_data_fifo_tdata[`PANIC_DESC_LEN_OF   +: `PANIC_DESC_LEN_SIZE];
@@ -657,10 +868,10 @@ generate
                             m_mem_p_axis_write_desc_valid[sp] = 1;
 
 
-                            pifo_in_fifo_valid[sp] = 1;
-                            pifo_in_fifo_data[sp] = m_detour_data_fifo_tdata;
-                            pifo_in_fifo_data[sp][`PANIC_DESC_PRIO_OF  +: `PANIC_DESC_PRIO_SIZE] = m_detour_data_fifo_tdata[`PANIC_DESC_PRIO_OF  +: `PANIC_DESC_PRIO_SIZE] -1;
-                            pifo_in_fifo_prio[sp] = pifo_in_fifo_data[sp][`PANIC_DESC_PRIO_OF   +: `PANIC_DESC_PRIO_SIZE];
+                            s_pifo_in_port_arb_valid[sp] = 1;
+                            s_pifo_in_port_arb_data[sp] = m_detour_data_fifo_tdata;
+                            s_pifo_in_port_arb_data[sp][`PANIC_DESC_PRIO_OF  +: `PANIC_DESC_PRIO_SIZE] = m_detour_data_fifo_tdata[`PANIC_DESC_PRIO_OF  +: `PANIC_DESC_PRIO_SIZE] -1;
+                            s_pifo_in_port_arb_prio[sp] = s_pifo_in_port_arb_data[sp][`PANIC_DESC_PRIO_OF   +: `PANIC_DESC_PRIO_SIZE];
                         end
 
                     end
@@ -688,9 +899,8 @@ endgenerate
 /*credit manager*/
 
 // credit regiters
-// reg [2:0] credit_regs [ENGINE_NUM-1 : 0] ;
-wire [2:0] test_credit0, test_credit1, test_credit2;
-reg [2:0] credit_regs [NODE_NUM-1 : 0];
+
+reg [3:0] credit_regs [NODE_NUM-1 : 0];
 
 integer i, init_i1;
 
@@ -743,17 +953,11 @@ always @(posedge clk) begin
                 end
             end
 
-        if(pifo_out_ready && pifo_out_valid) begin
-            // $display("PIFO OUT flow id: %d, next dst: %d", pifo_out_data_clear[`PANIC_DESC_FLOW_OF +: `PANIC_DESC_FLOW_SIZE], pifo_out_data_clear[`PANIC_DESC_CHAIN_OF +: `PANIC_DESC_CHAIN_ITEM_SIZE]);
-            if(credit_regs[selected_engine] >= 1)
-                credit_regs[selected_engine] = credit_regs[selected_engine] - 1;
-            // credit_regs -= 1;
+        if(s_pifo_out_fifo_ready && s_pifo_out_fifo_valid) begin
+            if(credit_regs[s_pifo_out_fifo_select] >= 1)
+                credit_regs[s_pifo_out_fifo_select] = credit_regs[s_pifo_out_fifo_select] - 1;
         end
     end
 end
 
-assign credit_valid = (credit_regs[selected_engine] > 0);
-assign test_credit0 = credit_regs[0];
-assign test_credit1 = credit_regs[1];
-assign test_credit2 = credit_regs[2];
 endmodule

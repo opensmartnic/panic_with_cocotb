@@ -34,16 +34,16 @@ This repo does not include the implementation of the NIC driver, DMA Engine, Eth
    
 
 ### Testbench
-    packet_gen_parallel.v    : Packet generator for replaying Fig.9(c)
-    packet_gen_shaaes.v      : Packet generator for replaying Fig.11
+    packet_gen_parallel.v    : Packet generator for replaying Fig.8(c)
+    packet_gen_shaaes.v      : Packet generator for replaying Fig.11(a)
 
 ## Testing
 
 In the repo, we provide two testbenches to replay the experiments in Vivado HDL simulator. 
 
-* In **packet_gen_parallel.v**, we measure Frenzy NIC throughput using different packet sizes and 40% service time variance (see Fig.1 below). In this testbench, we expect to see that Frenzy can achieve 100G throughput even if the offload engines have variable performance. For the expected output and analysis please reference Fig.9(c) in Frenzy paper. (**Note: we have improved the small packet performance, Frenzy now has better performance than Fig.9(c).**)
+* In **packet_gen_parallel.v**, we measure Frenzy NIC throughput using different packet sizes and 40% service time variance (see Fig.1 below). In this testbench we expect to see that Frenzy can achieve 100G throughput even if the offload engines have variable performance. For the expected output and analysis please reference Fig.8(c) in Frenzy paper.
 
-* In **packet_gen_shaaes.v**, we implement two FPGA-based offload engines in Frenzy: an SHA-3-512 engine, and an AES-256 engine (see Fig.2 below). We use three traffic patterns to test Frenzy performance (Table 5 in Frenzy paper). For the expected output and analysis please reference Fig.11 in Frenzy paper.
+* In **packet_gen_shaaes.v**, we implement two FPGA-based offload engines in Frenzy: an SHA-3-512 engine, and an AES-256 engine (see Fig.2 below). We use four traffic patterns to test Frenzy performance. For the expected output and analysis please reference Fig.11(a) in Frenzy paper.
   
 ![chaining model](/doc/chaining_model.png)
 
@@ -68,9 +68,9 @@ $ vivado -mode tcl
 
 ```
 $ git clone https://bitbucket.org/uw-madison-networking-research/frenzy_artifact.git
-$ cd frenzy_artifact
-$ make test_parallel  \\ replay Figure 9(C) in Frenzy paper
-$ make test_shaaes    \\ replay Figure 11 in Frenzy paper
+$ cd frenzy_code
+$ make test_parallel  \\ replay Figure 8(c) in Frenzy paper
+$ make test_shaaes    \\ replay Figure 11(a) in Frenzy paper
 ```
 The result will be printed in the console. The output will also be logged in *./build/export_sim/xsim/simulate.log*
 

@@ -10,6 +10,7 @@ parameter NUMPIFO = 1024;
 parameter BITPORT = 8; 
 parameter BITPRIO = 16;
 parameter BITDATA = 32;
+parameter PIFO_ID = 0;
 
 localparam BITPIFO = $clog2(NUMPIFO);
 
@@ -103,13 +104,24 @@ shift #(.BITDATA(1+BITPIFO+BITPIFO+BITPRIO+BITPORT), .DELAY(FLOP_IDX)) push_lo_d
 
 reg [BITPIFO-1:0] pop_0_bmp_id;
 reg               pop_0_bmp_hit;
-pop_pe_idx  #(.NUMPIFO(NUMPIFO), .BITPORT(BITPORT)) pop_idx_inst  (.port(oprt_0), .pf_port(pf_port), .pf_cnt(pf_cnt), .pop_idx(pop_0_bmp_id), .pop_hit(pop_0_bmp_hit));
-
 reg [BITPIFO-1:0] push_1_bmp_id;
-push_pe_idx #(.NUMPIFO(NUMPIFO), .BITPRIO(BITPRIO)) push_1_idx_inst (.prio(upri_1), .pf_prio(pf_prio), .pf_cnt(pf_cnt), .push_idx(push_1_bmp_id));
-
 reg [BITPIFO-1:0] push_2_bmp_id;
-push_pe_idx1 #(.NUMPIFO(NUMPIFO), .BITPRIO(BITPRIO)) push_2_idx_inst (.prio(upri_2), .pf_prio(pf_prio), .pf_cnt(pf_cnt), .push_idx(push_2_bmp_id));
+
+if(PIFO_ID == 0) begin
+  pop_pe_idx  #(.NUMPIFO(NUMPIFO), .BITPORT(BITPORT)) pop_idx_inst  (.port(oprt_0), .pf_port(pf_port), .pf_cnt(pf_cnt), .pop_idx(pop_0_bmp_id), .pop_hit(pop_0_bmp_hit));
+
+  push_pe_idx #(.NUMPIFO(NUMPIFO), .BITPRIO(BITPRIO)) push_1_idx_inst (.prio(upri_1), .pf_prio(pf_prio), .pf_cnt(pf_cnt), .push_idx(push_1_bmp_id));
+
+  push_pe_idx1 #(.NUMPIFO(NUMPIFO), .BITPRIO(BITPRIO)) push_2_idx_inst (.prio(upri_2), .pf_prio(pf_prio), .pf_cnt(pf_cnt), .push_idx(push_2_bmp_id));
+end
+else begin
+  pop_pe_idx2  #(.NUMPIFO(NUMPIFO), .BITPORT(BITPORT)) pop_1_idx_inst  (.port(oprt_0), .pf_port(pf_port), .pf_cnt(pf_cnt), .pop_idx(pop_0_bmp_id), .pop_hit(pop_0_bmp_hit));
+
+  push_pe_idx2 #(.NUMPIFO(NUMPIFO), .BITPRIO(BITPRIO)) push_3_idx_inst (.prio(upri_1), .pf_prio(pf_prio), .pf_cnt(pf_cnt), .push_idx(push_1_bmp_id));
+
+  push_pe_idx3 #(.NUMPIFO(NUMPIFO), .BITPRIO(BITPRIO)) push_4_idx_inst (.prio(upri_2), .pf_prio(pf_prio), .pf_cnt(pf_cnt), .push_idx(push_2_bmp_id));
+end
+
 
 reg pop_0_hit_tmp;
 reg [BITPIFO-1:0] pop_0_idx_tmp;
@@ -502,8 +514,170 @@ generate for(lvar=1; lvar<log_width; lvar=lvar+1) begin
 end
 endgenerate
 
+assign valid  = part_idx[log_width-1][0];
+assign encode = part_idx[log_width-1][1+:log_width];
+
+endmodule 
+
+module priority_encode_log3 (
+  decode,
+  encode,valid
+);
+
+parameter width = 1024;
+parameter log_width = 10;
+
+localparam pot_width = 1 << log_width;
+
+input  [width-1:0]     decode;
+output [log_width-1:0] encode;
+output                 valid;
+
+wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
+
+reg [pot_width-1:0] part_idx [0:log_width-1];
 
 
+integer ini;
+integer inj;
+initial begin
+
+    for(ini = 0; ini < log_width; ini = ini +1 )
+        for(inj = 0; inj < pot_width; inj = inj +1 )
+            part_idx[ini][inj] = 0;
+end
+always_comb begin
+  part_idx[0] = 0;
+  for(integer i=0; i<pot_width; i=i+2) begin
+    part_idx[0][i] = pot_decode[i] || pot_decode[i+1];
+    part_idx[0][i+1] = !pot_decode[i];
+  end
+end
+
+genvar lvar;
+generate for(lvar=1; lvar<log_width; lvar=lvar+1) begin
+  always_comb begin
+  // $display("entered priority_encode_log");
+    part_idx[lvar] = 0;
+    for(integer i=0; i<pot_width; i=i+(1<<(lvar+1))) begin
+      part_idx[lvar][i] = part_idx[lvar-1][i] ||  part_idx[lvar-1][i+(1<<lvar)];
+      part_idx[lvar][i+1 +: lvar] = part_idx[lvar-1][i] ? part_idx[lvar-1][i+1 +:lvar] : part_idx[lvar-1][i+(1<<lvar)+1 +:lvar];
+      part_idx[lvar][i+1 + lvar] = !part_idx[lvar-1][i];
+    end
+  end
+end
+endgenerate
+
+assign valid  = part_idx[log_width-1][0];
+assign encode = part_idx[log_width-1][1+:log_width];
+
+endmodule 
+
+module priority_encode_log4 (
+  decode,
+  encode,valid
+);
+
+parameter width = 1024;
+parameter log_width = 10;
+
+localparam pot_width = 1 << log_width;
+
+input  [width-1:0]     decode;
+output [log_width-1:0] encode;
+output                 valid;
+
+wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
+
+reg [pot_width-1:0] part_idx [0:log_width-1];
+
+integer ini;
+integer inj;
+initial begin
+
+    for(ini = 0; ini < log_width; ini = ini +1 )
+        for(inj = 0; inj < pot_width; inj = inj +1 )
+            part_idx[ini][inj] = 0;
+end
+
+always_comb begin
+  part_idx[0] = 0;
+  for(integer i=0; i<pot_width; i=i+2) begin
+    part_idx[0][i] = pot_decode[i] || pot_decode[i+1];
+    part_idx[0][i+1] = !pot_decode[i];
+  end
+end
+
+genvar lvar;
+generate for(lvar=1; lvar<log_width; lvar=lvar+1) begin
+  always_comb begin
+  // $display("entered priority_encode_log1, lvar:%D, part_idx: %x", lvar, part_idx[lvar]);
+    part_idx[lvar] = 0;
+    for(integer i=0; i<pot_width; i=i+(1<<(lvar+1))) begin
+      part_idx[lvar][i] = part_idx[lvar-1][i] ||  part_idx[lvar-1][i+(1<<lvar)];
+      part_idx[lvar][i+1 +: lvar] = part_idx[lvar-1][i] ? part_idx[lvar-1][i+1 +:lvar] : part_idx[lvar-1][i+(1<<lvar)+1 +:lvar];
+      part_idx[lvar][i+1 + lvar] = !part_idx[lvar-1][i];
+    end
+  end
+end
+endgenerate
+
+
+
+
+assign valid  = part_idx[log_width-1][0];
+assign encode = part_idx[log_width-1][1+:log_width];
+
+endmodule 
+
+module priority_encode_log5 (
+  decode,
+  encode,valid
+);
+
+parameter width = 1024;
+parameter log_width = 10;
+
+localparam pot_width = 1 << log_width;
+
+input  [width-1:0]     decode;
+output [log_width-1:0] encode;
+output                 valid;
+
+wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
+
+reg [pot_width-1:0] part_idx [0:log_width-1];
+
+integer ini;
+integer inj;
+initial begin
+
+    for(ini = 0; ini < log_width; ini = ini +1 )
+        for(inj = 0; inj < pot_width; inj = inj +1 )
+            part_idx[ini][inj] = 0;
+end
+
+always_comb begin
+  part_idx[0] = 0;
+  for(integer i=0; i<pot_width; i=i+2) begin
+    part_idx[0][i] = pot_decode[i] || pot_decode[i+1];
+    part_idx[0][i+1] = !pot_decode[i];
+  end
+end
+
+genvar lvar;
+generate for(lvar=1; lvar<log_width; lvar=lvar+1) begin
+  always_comb begin
+  // $display("entered priority_encode_log1, lvar:%D, part_idx: %x", lvar, part_idx[lvar]);
+    part_idx[lvar] = 0;
+    for(integer i=0; i<pot_width; i=i+(1<<(lvar+1))) begin
+      part_idx[lvar][i] = part_idx[lvar-1][i] ||  part_idx[lvar-1][i+(1<<lvar)];
+      part_idx[lvar][i+1 +: lvar] = part_idx[lvar-1][i] ? part_idx[lvar-1][i+1 +:lvar] : part_idx[lvar-1][i+(1<<lvar)+1 +:lvar];
+      part_idx[lvar][i+1 + lvar] = !part_idx[lvar-1][i];
+    end
+  end
+end
+endgenerate
 
 assign valid  = part_idx[log_width-1][0];
 assign encode = part_idx[log_width-1][1+:log_width];
@@ -566,4 +740,62 @@ always_comb begin
  end
 
 priority_encode_log2 #(.width(NUMPIFO), .log_width(BITPIFO)) push_pe (.decode(push_bmp), .encode(push_idx), .valid());
+endmodule
+
+
+module pop_pe_idx2 (port, pf_port, pf_cnt, pop_idx, pop_hit);
+parameter NUMPIFO = 8;
+parameter BITPORT = 2;
+localparam BITPIFO = $clog2(NUMPIFO);
+input  [BITPORT-1:0] port;
+input  [BITPORT-1:0] pf_port[0:NUMPIFO-1];
+input  [BITPIFO  :0] pf_cnt;
+output [BITPIFO-1:0] pop_idx;
+output               pop_hit;
+
+reg [NUMPIFO-1:0] pop_bmp;
+always_comb begin
+// $display("entered pop_pe_idx");
+  for(integer i=0; i<NUMPIFO; i=i+1)
+    pop_bmp[i] = (i<pf_cnt && pf_port[i]==port);
+end
+
+priority_encode_log3 #(.width(NUMPIFO), .log_width(BITPIFO)) pop_pe0 (.decode(pop_bmp), .encode(pop_idx), .valid(pop_hit));
+endmodule
+
+module push_pe_idx2 (prio, pf_prio, pf_cnt, push_idx);
+parameter NUMPIFO = 8;
+parameter BITPRIO = 4;
+localparam BITPIFO = $clog2(NUMPIFO);
+input  [BITPRIO-1:0] prio;
+input  [BITPRIO-1:0] pf_prio [0:NUMPIFO-1];
+input  [BITPIFO  :0] pf_cnt;
+output [BITPIFO-1:0] push_idx;
+
+reg [NUMPIFO-1:0] push_bmp;
+always_comb begin
+// $display("entered push_pe_idx1");
+  for(integer i=0; i<NUMPIFO; i=i+1)
+    push_bmp[i] = (i==pf_cnt || pf_prio[i]>prio);
+end
+priority_encode_log4 #(.width(NUMPIFO), .log_width(BITPIFO)) push_pe1 (.decode(push_bmp), .encode(push_idx), .valid());
+endmodule
+
+module push_pe_idx3 (prio, pf_prio, pf_cnt, push_idx);
+parameter NUMPIFO = 8;
+parameter BITPRIO = 4;
+localparam BITPIFO = $clog2(NUMPIFO);
+input  [BITPRIO-1:0] prio;
+input  [BITPRIO-1:0] pf_prio [0:NUMPIFO-1];
+input  [BITPIFO  :0] pf_cnt;
+output [BITPIFO-1:0] push_idx;
+
+reg [NUMPIFO-1:0] push_bmp;
+always_comb begin
+  // $display("entered push_pe_idx");
+  for(integer i=0; i<NUMPIFO; i=i+1)
+    push_bmp[i] = (i==pf_cnt || pf_prio[i]>prio);
+ end
+
+priority_encode_log5 #(.width(NUMPIFO), .log_width(BITPIFO)) push_pe2 (.decode(push_bmp), .encode(push_idx), .valid());
 endmodule

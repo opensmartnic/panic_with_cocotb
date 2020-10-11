@@ -22,16 +22,19 @@ initial begin
     $display("|* Simulation Frequency: 250Mhz    |");
     $display("|* Logging Interval: 4K cycles/log |");
     $display("|* Packet Size: 1500B              |");
+    $display("|* Policy: Strict Priority         |");
     $display("|* Traffic Pattern 1:              |");
     $display("|   [G1: 30G, G2: 50G, G3: 20G]    |");
     $display("|* Traffic Pattern 2:              |");
     $display("|   [G1: 10G, G2: 60G, G3: 30G]    |");
     $display("|* Traffic Pattern 3:              |");
     $display("|   [G1: 30G, G2: 30G, G3: 40G]    |");
+    $display("|* Traffic Pattern 4:              |");
+    $display("|   [G1: 60G, G2: 40G, G3:  0G]    |");
     $display("|* Chain: -> S(S1,S2)-> A(A1,A2)-> |");
     $display("|                                  |");
     $display("|* More detail about the chainning |");
-    $display("|  model please reference Fig.10   |");
+    $display("|  model please reference Fig.12   |");
     $display("|  in Frenzy paper                 |");
     $display("|----------------------------------|");
 
@@ -144,6 +147,7 @@ reg [4:0] flow_id;
 reg [4:0] traffic_pattern1 [9:0];
 reg [4:0] traffic_pattern2 [9:0];
 reg [4:0] traffic_pattern3 [9:0];
+reg [4:0] traffic_pattern4 [9:0];
 
 always@(*) begin
 
@@ -206,6 +210,11 @@ always@(posedge clk) begin
                 if(counter == 1601)
                     $display("**************\n Switch to Pattern 3\n**************");
                 flow_id <= traffic_pattern3[counter %10] ;
+            end
+            else if (counter < 3600) begin
+                if(counter == 2801)
+                    $display("**************\n Switch to Pattern 4\n**************");
+                flow_id <= traffic_pattern4[counter %10] ;
             end
             else begin
                 $finish;
@@ -286,6 +295,17 @@ always @(posedge clk) begin
         traffic_pattern3[7] <= 2;
         traffic_pattern3[8] <= 1;
         traffic_pattern3[9] <= 2;
+
+        traffic_pattern4[0] <= 0;
+        traffic_pattern4[1] <= 0;
+        traffic_pattern4[2] <= 0;
+        traffic_pattern4[3] <= 0;
+        traffic_pattern4[4] <= 1;
+        traffic_pattern4[5] <= 1;
+        traffic_pattern4[6] <= 0;
+        traffic_pattern4[7] <= 1;
+        traffic_pattern4[8] <= 0;
+        traffic_pattern4[9] <= 1;
 
     end
 

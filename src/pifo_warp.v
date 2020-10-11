@@ -6,7 +6,8 @@ module pifo_warp #
     parameter   NUMPIFO    = 1024,
     parameter   BITPORT    = 1,
     parameter   BITPRIO    = 16,
-    parameter   BITDESC    = 32
+    parameter   BITDESC    = 32,
+    parameter   PIFO_ID    = 0
 )
 (
     input  wire                             clk,
@@ -270,30 +271,33 @@ pifo #(
     .NUMPIFO (NUMPIFO),
     .BITPORT (BITPORT), 
     .BITPRIO (BITPRIO),
-    .BITDATA (BITDATA)
+    .BITDATA (BITDATA),
+    .PIFO_ID(PIFO_ID)
 )inst(
-  .clk(clk_125),
-  .rst(rst_125),
-  .pop_0(pop_0), 
-  .oprt_0(oprt_0), 
-  .ovld_0(ovld_0), 
-  .opri_0(opri_0), 
-  .odout_0(odout_0),
-  
-  .push_1(push_1), 
-  .uprt_1(uprt_1), 
-  .upri_1(upri_1), 
-  .udin_1(udin_1),
-  .push_1_drop(push_1_drop & push_1),
-  
+    .clk(clk_125),
+    .rst(rst_125),
+    .pop_0(pop_0), 
+    .oprt_0(oprt_0), 
+    .ovld_0(ovld_0), 
+    .opri_0(opri_0), 
+    .odout_0(odout_0),
     
-  .push_2(0),
-  .push_2_drop(0),
+    .push_1(push_1), 
+    .uprt_1(uprt_1), 
+    .upri_1(upri_1), 
+    .udin_1(udin_1),
+    .push_1_drop(push_1_drop & push_1),
+    
+        
+    .push_2(0),
+    .push_2_drop(0),
 
-  .odrop_vld_0(odrop_vld_0),
-  .odrop_pri_0(odrop_pri_0),
-  .odrop_dout_0(odrop_dout_0)
+    .odrop_vld_0(odrop_vld_0),
+    .odrop_pri_0(odrop_pri_0),
+    .odrop_dout_0(odrop_dout_0)
 );
+
+
 assign alloc_mem_size = 1;
 assign free_mem_size_1 = 1;
 assign free_mem_size_2 = 1;

@@ -25,7 +25,7 @@ initial begin
     $display("|* Chain: -> A(A1, A2, A3) ->      |");
     $display("|                                  |");
     $display("|* More detail about the chainning |");
-    $display("|  model please reference Fig.8(b) |");
+    $display("|  model please reference Fig.7(b) |");
     $display("|  in Frenzy paper                 |");
     $display("|----------------------------------|");
     clk = 0;
@@ -92,7 +92,7 @@ panic #
     .SWITCH_USER_WIDTH(1),
 
     /*ENGINE PARAMETER*/
-    .INIT_CREDIT_NUM(2),
+    .INIT_CREDIT_NUM(4),
     .ENGINE_NUM(4),
     .TEST_MODE(1)
 
