@@ -32,5 +32,5 @@
 `define PANIC_CREDIT_TYPE_SIZE (4)  // 1 add credit, 2 cancle credit
 `define PANIC_CREDIT_TYPE_OF (4)
 
-`define PANIC_CELL_SIZE (512*3*8)
+`define PANIC_CELL_SIZE (512*3*8/8)
 `define PANIC_SERVICE_TIME (5)

@@ -68,7 +68,7 @@ panic #
     // Width of AXI memory data bus in bits, normal is 512
     .AXI_DATA_WIDTH(AXIS_DATA_WIDTH),
     // Width of panic memory address bus in bits
-    .AXI_ADDR_WIDTH(19),
+    .AXI_ADDR_WIDTH(17),
 
     /*AXIS INTERFACE PARAMETER*/
     // Width of AXI stream interfaces in bits, normal is 512
