@@ -57,7 +57,8 @@ module panic_scheduler #
     parameter NUMPIFO = 64,
 
     parameter PORT_NUM = 2,
-    parameter TEST_MODE = 0
+    parameter TEST_MODE = 0,
+    parameter   SMALL_PK_OPT = 0
 
 )
 (
@@ -239,7 +240,8 @@ generate
             .BITPORT    (1),
             .BITPRIO    (`PANIC_DESC_PRIO_SIZE),
             .BITDESC    (`PANIC_DESC_WIDTH),
-            .PIFO_ID    (pc)
+            .PIFO_ID    (pc),
+            .SMALL_PK_OPT (SMALL_PK_OPT)
         ) pf_inst (
             .clk                                (clk),
             .rst                                (rst),

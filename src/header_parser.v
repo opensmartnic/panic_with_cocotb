@@ -175,7 +175,7 @@ reg signed [5:0] R;
 reg [9:0] variance_range;
 wire [`PANIC_DESC_TIME_SIZE - 1 : 0] temp_des_time;
 
-assign temp_des_time = (m_desc_pk_len * 6/100) - (m_desc_pk_len/64);
+assign temp_des_time = (m_desc_pk_len * 6/100) - (m_desc_pk_len/64) - 2;
 
 reg rr_reg = 0;
 always @*begin

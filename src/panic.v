@@ -106,7 +106,8 @@ module panic #
 localparam FREE_PORT_NUM = 2;
 localparam CELL_NUM = 2**(AXI_ADDR_WIDTH+1)/`PANIC_CELL_SIZE;
 localparam CELL_ID_WIDTH = $clog2(CELL_NUM);
-localparam NUMPIFO = 256;
+localparam NUMPIFO = 128;
+localparam SMALL_PK_OPT = (TEST_MODE == 1)? 1:0;
 
 wire [ENGINE_NUM*2 -1 :0] credit_control;
 
@@ -438,7 +439,8 @@ panic_scheduler #(
 
     .NUMPIFO(NUMPIFO),
     .INIT_CREDIT_NUM(INIT_CREDIT_NUM),
-    .TEST_MODE(TEST_MODE)
+    .TEST_MODE(TEST_MODE),
+    .SMALL_PK_OPT(SMALL_PK_OPT)
 )
 panic_scheduler_inst(
 

@@ -7,7 +7,8 @@ module pifo_warp #
     parameter   BITPORT    = 1,
     parameter   BITPRIO    = 16,
     parameter   BITDESC    = 32,
-    parameter   PIFO_ID    = 0
+    parameter   PIFO_ID    = 0,
+    parameter   SMALL_PK_OPT = 0
 )
 (
     input  wire                             clk,
@@ -331,7 +332,7 @@ always @* begin
         alloc_mem_req = 1;
         push_1 = alloc_mem_success;
     end
-    if(pifo_125_out_ready && pifo_counter_reg > 0 && !ovld_0) begin
+    if(pifo_125_out_ready && pifo_counter_reg > 0 && (SMALL_PK_OPT || !ovld_0)) begin 
         pop_0 = 1;
     end
     if(pifo_125_out_valid && pifo_125_out_ready) begin
@@ -368,7 +369,7 @@ always @(posedge clk_125) begin
         if(odrop_vld_0) 
             pifo_counter_reg = pifo_counter_reg - 1;
 
-        if(ovld_0) 
+        if(pop_0) 
             pifo_counter_reg = pifo_counter_reg - 1;
 
         if(alloc_mem_success) begin  

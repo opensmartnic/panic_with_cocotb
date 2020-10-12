@@ -362,7 +362,11 @@ always @(posedge clk) begin
                 // R = $urandom %(VARIANCE_RANGE * 2);
                 // R = $signed((VARIANCE_RANGE-1) - R);
                 R = 0;
-                delay_counter <= $signed(m_data_buffer_fifo_tdata[`PANIC_DESC_TIME_OF  +: `PANIC_DESC_TIME_SIZE]) + $signed(R);
+                delay_counter <= $signed(m_data_buffer_fifo_tdata[`PANIC_DESC_TIME_OF  +: `PANIC_DESC_TIME_SIZE]);
+                if($signed(m_data_buffer_fifo_tdata[`PANIC_DESC_TIME_OF  +: `PANIC_DESC_TIME_SIZE]) == 0) // if delay counter ==0 bypass stage
+                    compute_state <= STATE_EGRESS_HEAD;
+                else
+                    compute_state <= STATE_BUSY;
                 // $display("IN node %d, delay counter is %d -> %d", NODE_ID, m_data_buffer_fifo_tdata[`PANIC_DESC_TIME_OF  +: `PANIC_DESC_TIME_SIZE], $signed(m_data_buffer_fifo_tdata[`PANIC_DESC_TIME_OF  +: `PANIC_DESC_TIME_SIZE]) + $signed(R));
            end
         end
@@ -410,6 +414,16 @@ always @* begin
 
 
     add_credit = 0;
+    if(compute_state == STATE_IDLE) begin // if delay counter ==0 bypass stage
+        if($signed(m_data_buffer_fifo_tdata[`PANIC_DESC_TIME_OF  +: `PANIC_DESC_TIME_SIZE]) == 0) begin
+            m_switch_o2_axis_tvalid = m_data_buffer_fifo_tvalid;
+        end
+    end
+    else if(compute_state == STATE_BUSY) begin
+        if(delay_counter == 0 && m_data_buffer_fifo_tvalid) begin
+            m_switch_o2_axis_tvalid = m_data_buffer_fifo_tvalid;
+        end
+    end
     if(compute_state == STATE_EGRESS_HEAD) begin // finish processing, send the packet to the next hop
         m_switch_o2_axis_tvalid = m_data_buffer_fifo_tvalid;
         if(m_switch_o2_axis_tready && m_data_buffer_fifo_tvalid) begin

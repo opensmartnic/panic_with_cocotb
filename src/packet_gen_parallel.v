@@ -68,7 +68,7 @@ panic #
     // Width of AXI memory data bus in bits, normal is 512
     .AXI_DATA_WIDTH(AXIS_DATA_WIDTH),
     // Width of panic memory address bus in bits
-    .AXI_ADDR_WIDTH(17),
+    .AXI_ADDR_WIDTH(16),
 
     /*AXIS INTERFACE PARAMETER*/
     // Width of AXI stream interfaces in bits, normal is 512
@@ -92,7 +92,7 @@ panic #
     .SWITCH_USER_WIDTH(1),
 
     /*ENGINE PARAMETER*/
-    .INIT_CREDIT_NUM(4),
+    .INIT_CREDIT_NUM(6),
     .ENGINE_NUM(4),
     .TEST_MODE(1)
 
@@ -224,6 +224,7 @@ always@(posedge clk) begin
             if(panic_rx_axis_tkeep != {64{1'b1}}) begin
                 $display("ERROR in compare %x with  %x",panic_rx_axis_tdata, check_counter + check_seq_counter);
             end
+            // $display("DEBUG, received: %d",panic_rx_axis_tdata);
             pk_start <= 1;
             check_counter <= 0;
             check_seq_counter <=check_seq_counter + 1; 
