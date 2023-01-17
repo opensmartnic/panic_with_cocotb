@@ -242,7 +242,8 @@ always @(posedge clk) begin
     if(desc_next && udp_next && port_src_next== 0)
         rr_reg <= rr_reg + 1;
     
-    variance_range = 0.4 * temp_des_time;
+    //variance_range = 0.4 * temp_des_time;
+    variance_range = temp_des_time >> 2;
     if(variance_range == 0)
         R = 0;
     else begin

@@ -176,6 +176,32 @@ localparam INPUT_IDLE_STATE = 0;
 localparam DETOUR_STATE = 1;
 localparam INSERT_STATE = 2;
 
+
+// receive data from the central scheduler, first cycle descriptor, then follows data
+
+reg [2:0]  packet_counter, packet_counter_reg;
+
+// assign  s_switch_axis_tready = s_data_buffer_fifo_ready && (packet_counter < 2); // two data buffer
+
+reg [SWITCH_DATA_WIDTH-1:0]           s_data_buffer_fifo_tdata;
+reg [SWITCH_KEEP_WIDTH-1:0]           s_data_buffer_fifo_tkeep;
+reg                                   s_data_buffer_fifo_tvalid;
+wire                                  s_data_buffer_fifo_tready;
+reg                                   s_data_buffer_fifo_tlast;
+
+wire [SWITCH_DATA_WIDTH-1:0]           m_data_buffer_fifo_tdata;
+wire [SWITCH_KEEP_WIDTH-1:0]           m_data_buffer_fifo_tkeep;
+wire                                   m_data_buffer_fifo_tvalid;
+wire                                   m_data_buffer_fifo_tready;
+wire                                   m_data_buffer_fifo_tlast;
+
+reg     m_data_buffer_fifo_tready_reg;
+assign  m_data_buffer_fifo_tready = m_data_buffer_fifo_tready_reg;
+
+reg [AXIS_DATA_WIDTH-1:0]            s_cancle_credit_fifo_tdata;
+reg                                  s_cancle_credit_fifo_tvalid;
+wire                                 s_cancle_credit_fifo_tready;
+
 always @ (posedge clk) begin
     if(rst) begin
         detour_state <= INPUT_IDLE_STATE;
@@ -247,26 +273,6 @@ always @* begin
     end
 end
 
-// receive data from the central scheduler, first cycle descriptor, then follows data
-
-reg [2:0]  packet_counter, packet_counter_reg;
-
-// assign  s_switch_axis_tready = s_data_buffer_fifo_ready && (packet_counter < 2); // two data buffer
-
-reg [SWITCH_DATA_WIDTH-1:0]           s_data_buffer_fifo_tdata;
-reg [SWITCH_KEEP_WIDTH-1:0]           s_data_buffer_fifo_tkeep;
-reg                                   s_data_buffer_fifo_tvalid;
-wire                                  s_data_buffer_fifo_tready;
-reg                                   s_data_buffer_fifo_tlast;
-
-wire [SWITCH_DATA_WIDTH-1:0]           m_data_buffer_fifo_tdata;
-wire [SWITCH_KEEP_WIDTH-1:0]           m_data_buffer_fifo_tkeep;
-wire                                   m_data_buffer_fifo_tvalid;
-wire                                   m_data_buffer_fifo_tready;
-wire                                   m_data_buffer_fifo_tlast;
-
-reg     m_data_buffer_fifo_tready_reg;
-assign  m_data_buffer_fifo_tready = m_data_buffer_fifo_tready_reg;
 
 
 // max two packet
@@ -299,11 +305,6 @@ data_buffer_fifo (
     .m_axis_tready(m_data_buffer_fifo_tready),
     .m_axis_tlast(m_data_buffer_fifo_tlast)
 );
-
-
-reg [AXIS_DATA_WIDTH-1:0]            s_cancle_credit_fifo_tdata;
-reg                                  s_cancle_credit_fifo_tvalid;
-wire                                 s_cancle_credit_fifo_tready;
 
 
 // max two packet
@@ -489,6 +490,14 @@ end
 
 // multiplexer for egress port
 
+wire [SWITCH_DATA_WIDTH-1:0]      s_output_fifo_tdata;
+wire [SWITCH_KEEP_WIDTH-1:0]      s_output_fifo_tkeep;
+wire                              s_output_fifo_tvalid;
+wire                              s_output_fifo_tready;
+wire                              s_output_fifo_tlast;
+wire [SWITCH_DEST_WIDTH-1:0]      s_output_fifo_tdest;
+wire [SWITCH_USER_WIDTH-1:0]      s_output_fifo_tuser;
+
 axis_arb_mux  #(
     .S_COUNT(4),
     .DATA_WIDTH(SWITCH_DATA_WIDTH),
@@ -520,15 +529,6 @@ switch_out_mux (
     .m_axis_tdest(s_output_fifo_tdest),
     .m_axis_tuser(s_output_fifo_tuser)
 );
-
-wire [SWITCH_DATA_WIDTH-1:0]      s_output_fifo_tdata;
-wire [SWITCH_KEEP_WIDTH-1:0]      s_output_fifo_tkeep;
-wire                              s_output_fifo_tvalid;
-wire                              s_output_fifo_tready;
-wire                              s_output_fifo_tlast;
-wire [SWITCH_DEST_WIDTH-1:0]      s_output_fifo_tdest;
-wire [SWITCH_USER_WIDTH-1:0]      s_output_fifo_tuser;
-
 
 axis_fifo #(
     .DEPTH(24 * SWITCH_KEEP_WIDTH),

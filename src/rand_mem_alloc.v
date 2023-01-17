@@ -48,7 +48,6 @@ axis_fifo #(
     .DATA_WIDTH(LEN_WIDTH + CELL_ID_WIDTH),
     .KEEP_ENABLE(0),
     .LAST_ENABLE(0),
-    .USER_ENABLE(0),
     .ID_ENABLE(0),
     .DEST_ENABLE(0),
     .USER_ENABLE(0),
@@ -84,7 +83,6 @@ axis_fifo #(
     .DATA_WIDTH(LEN_WIDTH + CELL_ID_WIDTH),
     .KEEP_ENABLE(0),
     .LAST_ENABLE(0),
-    .USER_ENABLE(0),
     .ID_ENABLE(0),
     .DEST_ENABLE(0),
     .USER_ENABLE(0),
@@ -112,6 +110,14 @@ free_port1_fifo (
 // localparam CELL_NUM = 2**AXI_ADDR_WIDTH/CELL_SIZE;
 reg [31:0] valid_cell_counter = 0;
 
+reg [CELL_ID_WIDTH-1:0]           s_cell_fifo_tdata;
+reg                                s_cell_fifo_tvalid;
+wire                               s_cell_fifo_tready;
+
+wire [CELL_ID_WIDTH-1:0]           m_cell_fifo_tdata;
+wire                                m_cell_fifo_tvalid;
+wire                                 m_cell_fifo_tready;
+
 always@(posedge clk) begin
     if(rst) begin
         valid_cell_counter = 0;
@@ -128,20 +134,11 @@ always@(posedge clk) begin
 
 end
 
-reg [CELL_ID_WIDTH-1:0]           s_cell_fifo_tdata;
-reg                                s_cell_fifo_tvalid;
-wire                               s_cell_fifo_tready;
-
-wire [CELL_ID_WIDTH-1:0]           m_cell_fifo_tdata;
-wire                                m_cell_fifo_tvalid;
-wire                                 m_cell_fifo_tready;
-
 axis_fifo #(
     .DEPTH(CELL_NUM + 10),
     .DATA_WIDTH(CELL_ID_WIDTH),
     .KEEP_ENABLE(0),
     .LAST_ENABLE(0),
-    .USER_ENABLE(0),
     .ID_ENABLE(0),
     .DEST_ENABLE(0),
     .USER_ENABLE(0),

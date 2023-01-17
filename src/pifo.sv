@@ -226,6 +226,10 @@ always @(posedge clk)
   end
 // assign the drop wire
 
+reg [BITDATA-1:0] pf_data_nxt [0:NUMPIFO-1];
+reg [BITPRIO-1:0] pf_prio_nxt [0:NUMPIFO-1];
+reg [BITPORT-1:0] pf_port_nxt [0:NUMPIFO-1];
+
 always @(posedge clk) begin
   if(rst)
     odrop_vld_0 <= 0;
@@ -264,9 +268,6 @@ always_comb
   for(integer i=0; i<NUMPIFO; i=i+1) 
     pop_shift[i] = pop_0_hit_del && (pop_0_idx_del <= i);
 
-reg [BITDATA-1:0] pf_data_nxt [0:NUMPIFO-1];
-reg [BITPRIO-1:0] pf_prio_nxt [0:NUMPIFO-1];
-reg [BITPORT-1:0] pf_port_nxt [0:NUMPIFO-1];
 genvar pv;
 generate for(pv=0; pv<NUMPIFO; pv=pv+1) begin : pifo_loop
   wire pu1_set = push_1_del && pv == push_1_idx_del;
@@ -373,14 +374,14 @@ wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
 reg [pot_width-1:0] part_idx [0:log_width-1];
 
 
-integer ini;
-integer inj;
-initial begin
+// integer ini;
+// integer inj;
+// initial begin
 
-    for(ini = 0; ini < log_width; ini = ini +1 )
-        for(inj = 0; inj < pot_width; inj = inj +1 )
-            part_idx[ini][inj] = 0;
-end
+//     for(ini = 0; ini < log_width; ini = ini +1 )
+//         for(inj = 0; inj < pot_width; inj = inj +1 )
+//             part_idx[ini][inj] = 0;
+// end
 always_comb begin
   part_idx[0] = 0;
   for(integer i=0; i<pot_width; i=i+2) begin
@@ -426,14 +427,14 @@ wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
 
 reg [pot_width-1:0] part_idx [0:log_width-1];
 
-integer ini;
-integer inj;
-initial begin
+// integer ini;
+// integer inj;
+// initial begin
 
-    for(ini = 0; ini < log_width; ini = ini +1 )
-        for(inj = 0; inj < pot_width; inj = inj +1 )
-            part_idx[ini][inj] = 0;
-end
+//     for(ini = 0; ini < log_width; ini = ini +1 )
+//         for(inj = 0; inj < pot_width; inj = inj +1 )
+//             part_idx[ini][inj] = 0;
+// end
 
 always_comb begin
   part_idx[0] = 0;
@@ -483,14 +484,14 @@ wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
 
 reg [pot_width-1:0] part_idx [0:log_width-1];
 
-integer ini;
-integer inj;
-initial begin
+// integer ini;
+// integer inj;
+// initial begin
 
-    for(ini = 0; ini < log_width; ini = ini +1 )
-        for(inj = 0; inj < pot_width; inj = inj +1 )
-            part_idx[ini][inj] = 0;
-end
+//     for(ini = 0; ini < log_width; ini = ini +1 )
+//         for(inj = 0; inj < pot_width; inj = inj +1 )
+//             part_idx[ini][inj] = 0;
+// end
 
 always_comb begin
   part_idx[0] = 0;
@@ -538,14 +539,14 @@ wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
 reg [pot_width-1:0] part_idx [0:log_width-1];
 
 
-integer ini;
-integer inj;
-initial begin
+// integer ini;
+// integer inj;
+// initial begin
 
-    for(ini = 0; ini < log_width; ini = ini +1 )
-        for(inj = 0; inj < pot_width; inj = inj +1 )
-            part_idx[ini][inj] = 0;
-end
+//     for(ini = 0; ini < log_width; ini = ini +1 )
+//         for(inj = 0; inj < pot_width; inj = inj +1 )
+//             part_idx[ini][inj] = 0;
+// end
 always_comb begin
   part_idx[0] = 0;
   for(integer i=0; i<pot_width; i=i+2) begin
@@ -591,14 +592,14 @@ wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
 
 reg [pot_width-1:0] part_idx [0:log_width-1];
 
-integer ini;
-integer inj;
-initial begin
+// integer ini;
+// integer inj;
+// initial begin
 
-    for(ini = 0; ini < log_width; ini = ini +1 )
-        for(inj = 0; inj < pot_width; inj = inj +1 )
-            part_idx[ini][inj] = 0;
-end
+//     for(ini = 0; ini < log_width; ini = ini +1 )
+//         for(inj = 0; inj < pot_width; inj = inj +1 )
+//             part_idx[ini][inj] = 0;
+// end
 
 always_comb begin
   part_idx[0] = 0;
@@ -648,14 +649,14 @@ wire [pot_width-1:0] pot_decode = {pot_width{1'b0}} | decode;
 
 reg [pot_width-1:0] part_idx [0:log_width-1];
 
-integer ini;
-integer inj;
-initial begin
+// integer ini;
+// integer inj;
+// initial begin
 
-    for(ini = 0; ini < log_width; ini = ini +1 )
-        for(inj = 0; inj < pot_width; inj = inj +1 )
-            part_idx[ini][inj] = 0;
-end
+//     for(ini = 0; ini < log_width; ini = ini +1 )
+//         for(inj = 0; inj < pot_width; inj = inj +1 )
+//             part_idx[ini][inj] = 0;
+// end
 
 always_comb begin
   part_idx[0] = 0;

@@ -10,6 +10,10 @@ always begin
     #2;
 end
 
+reg [15:0] packet_len;
+wire [15:0] header_length;
+assign header_length = (packet_len)*64 - 14;
+
 initial begin
     $display("   ___                              ");
     $display("  / __\\_ __  ___  _ __   ____ _   _ ");
@@ -21,7 +25,7 @@ initial begin
     $display("|* Simulation Frequency: 250Mhz    |");
     $display("|* Logging Interval: 4K cycles/log |");
     $display("|* Packet Size Range: [64B, 2048B] |");
-    $display("|* Offload engine variance: 40%    |");
+    $display("|* Offload engine variance: 40%%    |");
     $display("|* Chain: -> A(A1, A2, A3) ->      |");
     $display("|                                  |");
     $display("|* More detail about the chainning |");
@@ -129,9 +133,6 @@ reg [63:0] c_counter;
 reg [63:0] cycle_counter;
 reg [63:0] byte_counter;
 
-reg [15:0] packet_len;
-wire [15:0] header_length;
-assign header_length = (packet_len)*64 - 14;
 
 reg [4:0] flow_id;
 
@@ -156,7 +157,7 @@ always@(*) begin
             end
             if(c_counter == packet_len-1) begin
                 rx_axis_tkeep = {64{1'b1}};
-                rx_axis_tlast <= 1;
+                rx_axis_tlast = 1;
             end
         end
     end

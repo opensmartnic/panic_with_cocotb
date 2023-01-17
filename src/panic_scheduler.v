@@ -405,6 +405,12 @@ pifo_drop_arb (
 );
 assign arb_pifo_drop_fifo_ready = 1;
 
+reg [3:0] max_engine [1:0];
+reg [3:0] max_credit [1:0];
+wire [3:0] selected_engine [1:0]; // 2 port pifo
+assign selected_engine[0] = max_engine[0];
+assign selected_engine[1] = max_engine[1];
+
 always@*begin
     s_pifo_out_fifo_data = 0;
     s_pifo_out_fifo_prio = 0;
@@ -471,14 +477,12 @@ pifo_in_arb (
 
 // select unit with maximum credit number
 
-wire [3:0] selected_engine [1:0]; // 2 port pifo
 
 integer wk1, wk2;
 
-reg [3:0] max_engine [1:0];
-reg [3:0] max_credit [1:0];
-assign selected_engine[0] = max_engine[0];
-assign selected_engine[1] = max_engine[1];
+// credit regiters
+reg [3:0] credit_regs [NODE_NUM-1 : 0];
+
 always @* begin
     max_credit[0] = 0;
     max_credit[1] = 0;
@@ -519,11 +523,11 @@ always @* begin
     end
 end
 
+wire  pifo_out_ready_array  [PORT_NUM-1 : 0];
 
 //need prepost ready signal
 assign m_pifo_out_fifo_ready = (pifo_out_ready_array[0] && m_pifo_out_fifo_data[`PANIC_DESC_PORT_OF] == 0) || (pifo_out_ready_array[1] && m_pifo_out_fifo_data[`PANIC_DESC_PORT_OF] == 1) ;
 
-wire  pifo_out_ready_array  [PORT_NUM-1 : 0];
 
 // switch input port generator
 generate
@@ -900,9 +904,6 @@ endgenerate
 
 /*credit manager*/
 
-// credit regiters
-
-reg [3:0] credit_regs [NODE_NUM-1 : 0];
 
 integer i, init_i1;
 
