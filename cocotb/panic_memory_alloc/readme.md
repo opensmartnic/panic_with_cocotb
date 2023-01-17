@@ -1,0 +1,13 @@
+在`panic_memory_alloc`模块中进行内存分配。分配的输入是`alloc_mem_req`（1bit）和`alloc_mem_size`（实际没用上），输出，也就是分配的结果是获得一个`cell_id`。可供分配的cell_id是确定的（从0开始索引），初始时按顺序进入FIFO以待分配，后续如果有释放，则按释放顺序先后进入FIFO。
+
+在panic_memory_alloc中实际负责分配的是rand_mem_alloc，有两个这样的实例，即两组可分配的cell_id。他们没有交集，在panic_memory_alloc中轮流使用，但如果其中一组释放得多，则也会相应分配更多的次数。
+
+在释放内存时，输入是（释放请求free_mem_req、待释放的free_cell_id、释放内存大小free_mem_size，以及在哪组RAM上free_bank_id），输出是释放完成free_mem_ready。这样的释放信号有两组。这个两组和有两组可分配cell_id是无交集的。之所以需要有两组释放信号在于，1）pifo有可能丢弃报文进而需要释放空间；2）报文正常处理经panic_dma向外输出后也需要释放。
+
+为什么有两组内存，看起来是跟有两个port有关，但这个理由并不充分，因为：1）没有看到panic能同时接收两个输入流；2）两组cell_id是轮流分配的，并不区分流量来源。
+
+如前所述，分配内存大小这个输入其实没有用上，而是固定分配大小。每个cell占用6*256=1536个字节。
+
+进入panic的报文，首先经过panic_parser生成一个描述符（Panic Descriptor），在生成过程中需要与panic_memory_alloc交互获得分配的内存cell_id（并写入描述符中），然后报文进入panic_schduler，并进一步被存储到RAM中。注意，存储时，panic descriptor并没有被存放到RAM中，而只是报文进入了。当报文要被推送处理时，将从RAM中取出，合并输入到对应的compute engine。
+
+panic descriptor在进入pifo_warp中后，也会被存储，只是那里是直接定义了reg数组来存放，而没有使用axi_ram。这个存储的过程，对pifo_warp的使用者而言，是透明的。

@@ -1,6 +1,13 @@
 # PANIC
 
+update：
+
+A small amount of code has been changed here to make it run in modelsim. Code of cocotb has been added. The original tb file written by verilog has been rewritten with cocotb.
+
+
+
 ## Introduction
+
 This is the FPGA prototype for PANIC. PANIC is a new programmable 100G NIC that provides cross-tenant performance isolation and low-latency load-balancing across parallel offload engines. Our FPGA prototype is implemented in pure Verilog. 
 
 PANIC has unique architectural features, including a hybrid push/pull packet scheduler, a high-performance switching interconnect, and self-contained compute units. In this repo, you can find the Verilog implementation of the above components. Besides, this repo also includes the packet buffer manager, the single-stage RMT pipeline (packet parser), the packet generator, and the packet capture agent.
@@ -31,7 +38,7 @@ This repo does not include the implementation of the NIC driver, DMA Engine, Eth
     compute_engine.v         : Delay engine
     per_counter.v            : Throughput metircs
     perf_lat.v               : Latency metrics
-   
+
 
 ### Testbench
     packet_gen_parallel.v    : Packet generator for replaying Fig.8(c)
@@ -45,6 +52,7 @@ In the repo, we provide two testbenches to replay the experiments in Vivado HDL 
 
 * In **packet_gen_shaaes.v**, we implement two FPGA-based offload engines in PANIC: an SHA-3-512 engine, and an AES-256 engine (see Fig.2 below). We use four traffic patterns to test PANIC performance. For the expected output and analysis please reference Fig.11(a) in PANIC paper.
   
+
 ![chaining model](/doc/chaining_model.png)
 
 Running this repo requires Vivado. (Vivado 2019.x and 2020.1 Webpack is verified). We strongly recommend you to use the [AWS FPGA Developer AMI](https://aws.amazon.com/marketplace/pp/B06VVYBLZZ), which has pre-installed the Vivado toolchain.
@@ -57,7 +65,7 @@ Running this repo requires Vivado. (Vivado 2019.x and 2020.1 Webpack is verified
 
 
 **1. Check Vivado is installed correctly, Vivado 2019.x and 2020.1 is verified**
-   
+
 ```
 $ vivado -mode tcl 
   // Enter the Vivado TCl Command Palette

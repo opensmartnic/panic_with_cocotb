@@ -1,0 +1,10 @@
+__pycache__/
+sim_build/
+modelsim.ini
+*.log
+*.wlf
+*.vstf
+*.do
+wlft*
+transcript
+results.xml
